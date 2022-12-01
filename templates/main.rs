@@ -1,3 +1,9 @@
+use std::{
+    error::Error,
+    fs::File,
+    io::{BufRead, BufReader},
+};
+
 fn main() -> Result<(), Box<dyn Error>> {
     for line in BufReader::new(File::open("input")?).lines() {
         println!("{line:?}");
