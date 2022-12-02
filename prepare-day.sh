@@ -5,6 +5,7 @@ this_year="$(date +'%Y')"
 day="${1:-$today}"
 day_zp="$(printf '%02d' "$day")"
 year="${2:-$this_year}"
+lang="${3:-rust}"
 
 day_dir="$year/day/$day_zp"
 
@@ -24,3 +25,15 @@ if [ -f "$input" ]; then
 else
 	curl -b "$session" -o "$input" "https://adventofcode.com/$year/day/$day/input"
 fi
+
+case "$lang" in
+'rust')
+	cd "$day_dir" || exit 1
+	cargo init --name "aoc-$year-$day_zp"
+	cp ../../../templates/main.rs src/main.rs
+	;;
+*)
+	echo "No template for languange '$lang'"
+	exit 1
+	;;
+esac
