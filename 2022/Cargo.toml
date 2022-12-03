@@ -1,0 +1,6 @@
+[workspace]
+members = ["day/*"]
+
+[workspace.dependencies]
+color-eyre = "0.6.2"
+thiserror = "1.0.37"
