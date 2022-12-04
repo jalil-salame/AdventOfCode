@@ -1,9 +1,16 @@
 use std::{
-    error::Error,
     io,
     ops::{Deref, RangeInclusive},
     str::FromStr,
 };
+
+use color_eyre::{Report, Result};
+
+#[allow(dead_code)]
+fn empty_option_err() -> Report {
+    use std::io::{Error, ErrorKind::Other};
+    Error::new(Other, "no hyphen found").into()
+}
 
 #[derive(Debug, Clone)]
 struct SectionRange(RangeInclusive<u32>);
@@ -31,12 +38,10 @@ impl Deref for SectionRange {
 }
 
 impl FromStr for SectionRange {
-    type Err = Box<dyn Error>;
+    type Err = Report;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let (start, end) = s
-            .split_once('-')
-            .ok_or_else(|| io::Error::new(io::ErrorKind::Other, "no hyphen found"))?;
+        let (start, end) = s.split_once('-').ok_or_else(empty_option_err)?;
         let (start, end) = (start.parse::<u32>()?, end.parse::<u32>()?);
         Ok(Self(start..=end))
     }
@@ -44,7 +49,9 @@ impl FromStr for SectionRange {
 
 static INPUT: &str = include_str!("../input");
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<()> {
+    color_eyre::install()?;
+
     let mut p1_solution = 0;
     let mut p2_solution = 0;
 

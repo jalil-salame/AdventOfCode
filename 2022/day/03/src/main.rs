@@ -1,11 +1,8 @@
 use color_eyre::Result;
-use std::{
-    collections::HashSet,
-    fs::File,
-    io::{BufRead, BufReader},
-    str::FromStr,
-};
+use std::{collections::HashSet, str::FromStr};
 use thiserror::Error;
+
+static INPUT: &str = include_str!("../input");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Item(char);
@@ -91,8 +88,8 @@ fn main() -> Result<()> {
     let mut points = 0;
     let mut group_points = 0;
     let mut group = vec![];
-    for line in BufReader::new(File::open("input")?).lines() {
-        let rucksack: Rucksack = line?.parse()?;
+    for line in INPUT.lines() {
+        let rucksack: Rucksack = line.parse()?;
         points += rucksack.duplicated_item().unwrap().inherent_points();
         if group.len() == 2 {
             let (first, second) = (group.pop().unwrap(), group.pop().unwrap());

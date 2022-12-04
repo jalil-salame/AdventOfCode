@@ -1,14 +1,13 @@
-use std::{
-    error::Error,
-    fs::File,
-    io::{BufRead, BufReader},
-};
+use color_eyre::Result;
 
-fn main() -> Result<(), Box<dyn Error>> {
+static INPUT: &str = include_str!("../input");
+
+fn main() -> Result<()> {
+    color_eyre::install()?;
+    
     let mut elf_bags: Vec<Vec<u32>> = vec![vec![]];
 
-    for line in BufReader::new(File::open("input")?).lines() {
-        let line = line?;
+    for line in INPUT.lines() {
         if line.is_empty() {
             elf_bags.push(vec![])
         } else {

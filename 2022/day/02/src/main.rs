@@ -1,8 +1,6 @@
-use std::{
-    error::Error,
-    fs::File,
-    io::{BufRead, BufReader},
-};
+use color_eyre::Result;
+
+static INPUT: &str = include_str!("../input");
 
 #[derive(Debug, Clone, Copy)]
 enum Hand {
@@ -83,11 +81,12 @@ impl Hand {
     }
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<()> {
+    color_eyre::install()?;
+
     let mut matches = vec![];
     let mut strategy = vec![];
-    for line in BufReader::new(File::open("input")?).lines() {
-        let line = line?;
+    for line in INPUT.lines() {
         let opponent = Hand::serialized(line.chars().next().unwrap());
         let strat = Match::serialized(line.chars().last().unwrap());
         let mine = Hand::serialized(line.chars().last().unwrap());
