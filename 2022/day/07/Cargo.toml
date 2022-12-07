@@ -1,0 +1,11 @@
+[package]
+name = "aoc-2022-07"
+version = "0.1.0"
+authors = ["Jalil David Salamé Messina <jalil.salame@tum.de>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+color-eyre.workspace = true
+nom.workspace = true
