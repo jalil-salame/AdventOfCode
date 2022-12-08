@@ -42,13 +42,13 @@ fn main() -> Result<()> {
     color_eyre::install()?;
 
     let (_, test_cmds) = parse::input(TEST_INPUT)?;
-    let test_fs = DirEntry::from_cmds(&test_cmds);
+    let test_fs = Dir::from(test_cmds.as_slice());
     assert_eq!(filesystem_size(&test_fs, MAX_DIR_SIZE), 95437);
     assert_eq!(test_fs.calculate_size(), 48381165);
     assert_eq!(free_space(&test_fs, REQUIRED_SPACE, DISK_SIZE), 24933642);
 
     let (_, cmds) = parse::input(INPUT)?;
-    let filesystem = DirEntry::from_cmds(&cmds);
+    let filesystem = Dir::from(cmds.as_slice());
 
     let p1_solution = filesystem_size(&filesystem, MAX_DIR_SIZE);
     let p2_solution = free_space(&filesystem, REQUIRED_SPACE, DISK_SIZE);
@@ -58,31 +58,30 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn free_space<'a, 'b: 'a>(fs: &'a DirEntry<'b>, required: u32, total: u32) -> u32 {
+fn free_space<'a, 'b: 'a>(fs: &'a Dir<'b>, required: u32, total: u32) -> u32 {
     let unused = total - fs.calculate_size();
     let to_free = required - unused;
 
-    let mut queue: Vec<_> = {
-        let DirEntry::Dir { name:_, files } = fs else {unreachable!()};
-        files
-            .iter()
-            .filter(|entry| matches!(entry, DirEntry::Dir { name: _, files: _ }))
-            .collect()
-    };
+    let mut queue: Vec<_> = fs
+        .files
+        .iter()
+        .filter_map(|entry| match &entry.kind {
+            EntryKind::Dir(dir) => Some(dir),
+            EntryKind::File(_) => None,
+        })
+        .collect();
 
     let mut min_size = fs.calculate_size();
 
     while let Some(wd) = queue.pop() {
-        let DirEntry::Dir { name: _, files } = wd else { unreachable!("wd not a directory") };
-
         let size = wd.calculate_size();
         if size < min_size && size >= to_free {
             min_size = size;
         }
 
-        for file in files {
-            match file {
-                DirEntry::Dir { name: _, files: _ } => queue.push(file),
+        for file in &wd.files {
+            match &file.kind {
+                EntryKind::Dir(dir) => queue.push(dir),
                 _ => continue,
             }
         }
@@ -91,20 +90,18 @@ fn free_space<'a, 'b: 'a>(fs: &'a DirEntry<'b>, required: u32, total: u32) -> u3
     min_size
 }
 
-fn filesystem_size(filesystem: &DirEntry, max_dir_size: u32) -> u32 {
+fn filesystem_size(filesystem: &Dir, max_dir_size: u32) -> u32 {
     let mut size = 0;
 
     let mut queue = vec![filesystem];
     while let Some(wd) = queue.pop() {
-        let DirEntry::Dir { name: _, files } = wd else { unreachable!("wd not a directory") };
-
         if wd.calculate_size() <= max_dir_size {
             size += wd.calculate_size();
         }
 
-        for file in files {
-            match file {
-                DirEntry::Dir { name: _, files: _ } => queue.push(file),
+        for file in &wd.files {
+            match &file.kind {
+                EntryKind::Dir(dir) => queue.push(dir),
                 _ => continue,
             }
         }
@@ -113,76 +110,92 @@ fn filesystem_size(filesystem: &DirEntry, max_dir_size: u32) -> u32 {
     size
 }
 
-type Directory<'a> = Vec<DirEntry<'a>>;
+struct DirEntry<'a> {
+    name: &'a str,
+    kind: EntryKind<'a>,
+}
 
-#[allow(unused)]
-#[derive(Clone)]
-enum DirEntry<'a> {
-    Dir { name: &'a str, files: Directory<'a> },
-    File { name: &'a str, size: u32 },
+#[derive(Debug)]
+struct Dir<'a> {
+    files: Vec<DirEntry<'a>>,
+}
+
+#[derive(Debug)]
+struct File {
+    size: u32,
+}
+
+#[derive(Debug)]
+enum EntryKind<'a> {
+    File(File),
+    Dir(Dir<'a>),
 }
 
 impl Debug for DirEntry<'_> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Dir { name, files } => {
-                write!(f, "- {name} ")?;
-                f.debug_list().entries(files).finish()
-            }
-            Self::File { name, size } => write!(f, "- {size} {name}"),
+        write!(f, "{} ", self.name)?;
+        match &self.kind {
+            EntryKind::Dir(Dir { files }) => f.debug_list().entries(files).finish(),
+            EntryKind::File(File { size }) => write!(f, "{size}"),
         }
+    }
+}
+
+impl Dir<'_> {
+    fn calculate_size(&self) -> u32 {
+        self.files.iter().map(DirEntry::calculate_size).sum()
     }
 }
 
 impl DirEntry<'_> {
     fn calculate_size(&self) -> u32 {
-        match self {
-            DirEntry::Dir { name: _, files } => files.iter().map(DirEntry::calculate_size).sum(),
-            DirEntry::File { name: _, size } => *size,
+        match &self.kind {
+            EntryKind::Dir(dir) => dir.calculate_size(),
+            EntryKind::File(File { size }) => *size,
         }
     }
 }
 
-impl<'a> DirEntry<'a> {
-    fn from_cmds(cmds: &[Command<'a>]) -> DirEntry<'a> {
-        use parse::Dir::*;
+impl<'a> Dir<'a> {
+    fn lookup_dir_mut(&mut self, path: &[&str]) -> &mut Dir<'a> {
+        match path {
+            [] => self,
+            [name] => {
+                let entry = self
+                    .files
+                    .iter_mut()
+                    .find(|child| &child.name == name)
+                    .expect("dir not found");
+                match &mut entry.kind {
+                    EntryKind::File(_) => panic!("Expected Dir"),
+                    EntryKind::Dir(dir) => dir,
+                }
+            }
+            _ => self.lookup_dir_mut(&[path[0]]).lookup_dir_mut(&path[1..]),
+        }
+    }
+}
+
+impl<'a> From<&[Command<'a>]> for Dir<'a> {
+    fn from(cmds: &[Command<'a>]) -> Self {
         use Command::*;
 
-        let mut root = DirEntry::Dir {
-            files: vec![],
-            name: "/",
-        };
+        let mut root = Self { files: vec![] };
         let mut pwd = vec![];
 
         for cmd in cmds {
             match cmd {
-                Cd(Root) => pwd.clear(),
-                Cd(Up) => {
+                Cd(parse::Dir::Root) => pwd.clear(),
+                Cd(parse::Dir::Up) => {
                     pwd.pop();
                 }
-                Cd(Name(name)) => pwd.push(*name),
+                Cd(parse::Dir::Name(name)) => pwd.push(*name),
                 Ls(files) => {
-                    let wd = {
-                        let mut dir = &mut root;
-                        for dir_name in pwd.iter().copied() {
-                            match dir {
-                                DirEntry::Dir { files, name: _ } => {
-                                    let Some(new_dir) = files.iter_mut().find(|de| match de {
-                                        DirEntry::Dir { files:_, name } => *name == dir_name,
-                                        _ => false,
-                                    }) else {unreachable!("couldn't cd into dir")};
-                                    dir = new_dir
-                                }
-                                _ => unreachable!("cd into a file"),
-                            }
-                        }
-                        dir
-                    };
+                    let wd = root.lookup_dir_mut(&pwd);
 
-                    let DirEntry::Dir { files: dir_files, name: _ } = wd else {unreachable!()};
-                    assert!(dir_files.is_empty());
+                    assert!(wd.files.is_empty());
                     for file in files.iter().copied() {
-                        dir_files.push(file.into())
+                        wd.files.push(file.into())
                     }
                 }
             };
@@ -195,10 +208,13 @@ impl<'a> DirEntry<'a> {
 impl<'a> From<parse::DirEntry<'a>> for DirEntry<'a> {
     fn from(de: parse::DirEntry<'a>) -> Self {
         match de {
-            parse::DirEntry::File { size, name } => DirEntry::File { size, name },
-            parse::DirEntry::Dir { name } => DirEntry::Dir {
-                files: vec![],
+            parse::DirEntry::File { size, name } => Self {
                 name,
+                kind: EntryKind::File(File { size }),
+            },
+            parse::DirEntry::Dir { name } => Self {
+                name,
+                kind: EntryKind::Dir(Dir { files: vec![] }),
             },
         }
     }
