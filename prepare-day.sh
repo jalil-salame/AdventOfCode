@@ -20,7 +20,7 @@ case "$lang" in
 'rust')
 	prev="$PWD"
 	cd "$day_dir" || fail "failed to cd into '$day_dir'"
-	cargo generate --init --name "aoc-$year-$day_zp" gh:salameme/aoc-template
+	cargo generate --init --name "aoc-$year-$day_zp" --path="$prev"/2022/templates/aoc-template/
 	cd "$prev" || fail "Couldn't cd back to the root"
 	;;
 *)
