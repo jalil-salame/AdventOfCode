@@ -1,0 +1,4 @@
+[submodule "templates/aoc-template"]
+    branch = main
+	path = 2022/templates/aoc-template
+	url = git@UniversityGitHub:salameme/aoc-template.git
