@@ -1,6 +1,6 @@
 use color_eyre::Result;
 
-static INPUT: &str = include_str!("../input");
+static INPUT: &str = include_str!("input");
 
 #[derive(Debug, Clone, Copy)]
 enum Hand {

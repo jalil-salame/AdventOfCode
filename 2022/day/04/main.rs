@@ -47,7 +47,7 @@ impl FromStr for SectionRange {
     }
 }
 
-static INPUT: &str = include_str!("../input");
+static INPUT: &str = include_str!("input");
 
 fn main() -> Result<()> {
     color_eyre::install()?;

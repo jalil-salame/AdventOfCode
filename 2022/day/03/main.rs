@@ -2,7 +2,7 @@ use color_eyre::Result;
 use std::{collections::HashSet, str::FromStr};
 use thiserror::Error;
 
-static INPUT: &str = include_str!("../input");
+static INPUT: &str = include_str!("input");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct Item(char);

@@ -4,7 +4,10 @@ version = "0.1.0"
 authors = ["Jalil David Salamé Messina <jalil.salame@tum.de>"]
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+path = "main.rs"
+name = "aoc-2022-08"
+
 
 [dependencies]
 color-eyre.workspace = true

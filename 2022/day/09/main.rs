@@ -13,7 +13,7 @@ fn empty_option_err() -> Report {
     Error::new(Other, "Option was empty").into()
 }
 
-static INPUT: &str = include_str!("../input");
+static INPUT: &str = include_str!("input");
 static TEST_INPUT: &str = "R 4
 U 4
 L 3

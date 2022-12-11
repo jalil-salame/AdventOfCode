@@ -9,7 +9,7 @@ fn empty_option_err() -> Report {
     Error::new(Other, "Option was empty").into()
 }
 
-static INPUT: &str = include_str!("../input");
+static INPUT: &str = include_str!("input");
 static TEST_INPUT: &str = "$ cd /
 $ ls
 dir a

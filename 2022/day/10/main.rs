@@ -12,7 +12,7 @@ fn empty_option_err() -> Report {
     Error::new(Other, "Option was empty").into()
 }
 
-static INPUT: &str = include_str!("../input");
+static INPUT: &str = include_str!("input");
 
 fn main() -> Result<()> {
     color_eyre::install()?;
@@ -181,7 +181,7 @@ mod test {
     use pretty_assertions::assert_eq;
 
     static INPUT: &str = "noop\naddx 3\naddx -5\n";
-    static TEST_INPUT: &str = include_str!("../test_input");
+    static TEST_INPUT: &str = include_str!("test_input");
     static TEST_IMAGE: &str = "##..##..##..##..##..##..##..##..##..##..
 ###...###...###...###...###...###...###.
 ####....####....####....####....####....

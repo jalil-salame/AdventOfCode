@@ -1,6 +1,6 @@
 use color_eyre::Result;
 
-static INPUT: &str = include_str!("../input");
+static INPUT: &str = include_str!("input");
 
 fn main() -> Result<()> {
     color_eyre::install()?;
