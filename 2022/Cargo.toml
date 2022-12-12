@@ -4,6 +4,7 @@ members = ["day/*"]
 [workspace.dependencies]
 nom = "7.1.1"
 num = "0.4.0"
+flagset = "0.4.3"
 thiserror = "1.0.37"
 itertools = "0.10.5"
 color-eyre = "0.6.2"
