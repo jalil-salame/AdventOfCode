@@ -1,4 +1,7 @@
-use std::collections::{HashSet, VecDeque};
+use std::{
+    collections::{HashSet, VecDeque},
+    time::Instant,
+};
 
 use color_eyre::{Report, Result};
 use flagset::{flags, FlagSet};
@@ -15,25 +18,56 @@ static INPUT: &str = include_str!("input");
 fn main() -> Result<()> {
     color_eyre::install()?;
 
-    let (width, height_map) = parse::input(INPUT)?.1;
+    let now = Instant::now();
+    let (width, height_map) = {
+        let now = Instant::now();
+
+        let res = parse::input(INPUT)?.1;
+
+        println!("Parsing took           {:>16?}", now.elapsed());
+        res
+    };
+
+    let extra_processing = Instant::now();
+
     let height = height_map.len() / width;
+    let flow_map = heigh_map_to_flow_map((width, height), &height_map);
 
-    let p1_solution = bfs((width, height), &height_map);
-    let p2_solution = multi_bfs((width, height), &height_map);
+    println!("Extra processing took: {:>16?}", extra_processing.elapsed());
 
-    println!("Problem 1: {p1_solution}\nProblem 2: {p2_solution}");
+    let p1_solution = {
+        let now = Instant::now();
+
+        let p1_solution = bfs((width, height), &height_map, &flow_map).expect("End reachable");
+
+        println!("Problem 1 took         {:>16?}", now.elapsed());
+        p1_solution
+    };
+
+    let p2_solution = {
+        let now = Instant::now();
+
+        let p2_solution =
+            multi_bfs((width, height), &height_map, &flow_map).expect("End reachable");
+
+        println!("Problem 2 took         {:>16?}", now.elapsed());
+        p2_solution
+    };
+    println!("Total time:            {:>16?}", now.elapsed());
+
+    println!("---------------------------------------");
+    println!("Problem 1:             {p1_solution:>16}");
+    println!("Problem 2:             {p2_solution:>16}");
 
     Ok(())
 }
 
-fn multi_bfs((width, height): (usize, usize), height_map: &[HeightMapPoint]) -> usize {
-    println!(
-        "Building Flow Map ({width}x{height}: {} points)",
-        height_map.len()
-    );
-    let flow_map = heigh_map_to_flow_map((width, height), height_map);
+fn multi_bfs(
+    (width, height): (usize, usize),
+    height_map: &[HeightMapPoint],
+    flow_map: &[FlagSet<Direction>],
+) -> Option<usize> {
     let mut bfs_map = vec![usize::MAX; width * height];
-
     let mut reachable = VecDeque::new();
     for start in
         height_map
@@ -51,49 +85,15 @@ fn multi_bfs((width, height): (usize, usize), height_map: &[HeightMapPoint]) -> 
         .find(|(_, point)| matches!(point, HeightMapPoint::End))
         .expect("End point");
 
-    println!("Running BFS...");
-    let mut processed = HashSet::new();
-    while let Some((ix, (x, y))) = reachable.pop_front() {
-        if !processed.insert(ix) {
-            continue;
-        }
-
-        if reachable.len() > width * height {
-            panic!(
-                "Using more than {width}*{height}={} elements, that's a bug",
-                width * height
-            );
-        }
-
-        let distance = bfs_map[ix];
-        for reached in flow_map[ix]
-            .into_iter()
-            .filter_map(|dir| move_point((width, height), (x, y), dir))
-        {
-            if bfs_map[reached] <= distance {
-                continue;
-            }
-
-            if reached == end {
-                return distance + 1;
-            }
-
-            bfs_map[reached] = distance + 1;
-            reachable.push_back((reached, (reached % width, reached / width)));
-        }
-    }
-
-    bfs_map[end]
+    bfs_impl((width, height), end, flow_map, &mut bfs_map, reachable)
 }
 
-fn bfs((width, height): (usize, usize), height_map: &[HeightMapPoint]) -> usize {
-    println!(
-        "Building Flow Map ({width}x{height}: {} points)",
-        height_map.len()
-    );
-    let flow_map = heigh_map_to_flow_map((width, height), height_map);
+fn bfs(
+    (width, height): (usize, usize),
+    height_map: &[HeightMapPoint],
+    flow_map: &[FlagSet<Direction>],
+) -> Option<usize> {
     let mut bfs_map = vec![usize::MAX; width * height];
-
     let (start, _) = height_map
         .iter()
         .enumerate()
@@ -107,9 +107,19 @@ fn bfs((width, height): (usize, usize), height_map: &[HeightMapPoint]) -> usize 
         .find(|(_, point)| matches!(point, HeightMapPoint::End))
         .expect("End point");
 
-    println!("Running BFS...");
     let mut reachable = VecDeque::new();
     reachable.push_back((start, (start % width, start / width)));
+
+    bfs_impl((width, height), end, flow_map, &mut bfs_map, reachable)
+}
+
+fn bfs_impl(
+    (width, height): (usize, usize),
+    end: usize,
+    flow_map: &[FlagSet<Direction>],
+    bfs_map: &mut [usize],
+    mut reachable: VecDeque<(usize, (usize, usize))>,
+) -> Option<usize> {
     let mut processed = HashSet::new();
     while let Some((ix, (x, y))) = reachable.pop_front() {
         if !processed.insert(ix) {
@@ -133,7 +143,7 @@ fn bfs((width, height): (usize, usize), height_map: &[HeightMapPoint]) -> usize 
             }
 
             if reached == end {
-                return distance + 1;
+                return Some(distance + 1);
             }
 
             bfs_map[reached] = distance + 1;
@@ -141,7 +151,7 @@ fn bfs((width, height): (usize, usize), height_map: &[HeightMapPoint]) -> usize 
         }
     }
 
-    bfs_map[end]
+    None
 }
 
 fn move_point(
@@ -331,20 +341,22 @@ mod test {
 
     #[test]
     fn problem_1() -> Result<()> {
-        let (width, points) = parse::input(INPUT)?.1;
+        let (width, height_map) = parse::input(INPUT)?.1;
 
-        let height = points.len() / width;
-        assert_eq!(bfs((width, height), &points), 31);
+        let height = height_map.len() / width;
+        let flow_map = heigh_map_to_flow_map((width, height), &height_map);
+        assert_eq!(bfs((width, height), &height_map, &flow_map), Some(31));
 
         Ok(())
     }
 
     #[test]
     fn problem_2() -> Result<()> {
-        let (width, points) = parse::input(INPUT)?.1;
+        let (width, height_map) = parse::input(INPUT)?.1;
 
-        let height = points.len() / width;
-        assert_eq!(multi_bfs((width, height), &points), 29);
+        let height = height_map.len() / width;
+        let flow_map = heigh_map_to_flow_map((width, height), &height_map);
+        assert_eq!(multi_bfs((width, height), &height_map, &flow_map), Some(29));
 
         Ok(())
     }
