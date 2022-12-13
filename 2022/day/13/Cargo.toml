@@ -1,0 +1,22 @@
+[package]
+name = "aoc-2022-13"
+version = "0.1.0"
+authors = ["Jalil David Salamé Messina <jalil.salame@tum.de>"]
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[[bin]]
+name = "aoc-2022-13"
+path = "main.rs"
+
+[dependencies]
+nom.workspace = true
+num.workspace = true
+thiserror.workspace = true
+itertools.workspace = true
+color-eyre.workspace = true
+pretty_assertions.workspace = true
+nom-supreme = "0.8.0"
+nom_locate = "4.0.0"
+miette = { version = "5", features = ["fancy"] }
