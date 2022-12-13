@@ -63,9 +63,16 @@ fn decoder_key(packets: Vec<(Packet, Packet)>) -> usize {
     packets.extend_from_slice(&dividers);
     packets.sort_unstable();
 
-    let left_ix = packets.iter().position(|packet| &dividers[0] == packet).expect("couldn't find left divisor");
-    let right_ix = packets.iter().position(|packet| &dividers[1] == packet).expect("couldn't find right divisor");
-    (1+left_ix) * (1+right_ix)
+    let left_ix = packets
+        .iter()
+        .position(|packet| &dividers[0] == packet)
+        .expect("couldn't find left divisor");
+    let right_ix = packets
+        .iter()
+        .position(|packet| &dividers[1] == packet)
+        .expect("couldn't find right divisor");
+
+    (1 + left_ix) * (1 + right_ix)
 }
 
 fn in_order_ix_sum(packets: &[(Packet, Packet)]) -> usize {
@@ -166,15 +173,11 @@ mod parse {
         fn cmp(&self, other: &Self) -> Ordering {
             match (self, other) {
                 (Value::List(left), Value::List(right)) => left.cmp(right),
-                (Value::List(left), Value::Integer(_)) => {
-                    left.cmp(&List(vec![other.clone()]))
-                }
-                (Value::Integer(_), Value::List(right)) => {
-                    List(vec![self.clone()]).cmp(right)
-                }
+                (Value::List(left), Value::Integer(_)) => left.cmp(&List(vec![other.clone()])),
+                (Value::Integer(_), Value::List(right)) => List(vec![self.clone()]).cmp(right),
                 (Value::Integer(left), Value::Integer(right)) => left.cmp(right),
             }
-    }
+        }
     }
 
     pub type Packet = List;
@@ -246,7 +249,7 @@ mod parse {
 
 #[cfg(test)]
 mod test {
-    use crate::{in_order_ix_sum, parse, decoder_key};
+    use crate::{decoder_key, in_order_ix_sum, parse};
     use color_eyre::Result;
     #[allow(unused)]
     use pretty_assertions::{assert_eq, assert_ne};
