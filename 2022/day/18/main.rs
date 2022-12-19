@@ -48,46 +48,80 @@ fn main() -> Result<()> {
     println!("Problem 1:       {problem_1_solution:>16}");
     println!("Problem 2:       {problem_2_solution:>16}");
 
+    // let mut min_x = i32::MAX;
+    // let mut min_y = i32::MAX;
+    // let mut min_z = i32::MAX;
+    // let mut max_x = i32::MIN;
+    // let mut max_y = i32::MIN;
+    // let mut max_z = i32::MIN;
+    // for point in points {
+    //     min_x = min_x.min(point.x);
+    //     min_y = min_y.min(point.y);
+    //     min_z = min_z.min(point.z);
+    //     max_x = max_x.max(point.x);
+    //     max_y = max_y.max(point.y);
+    //     max_z = max_z.max(point.z);
+    // }
+    // println!(
+    //     "Dimensions: {:?} {:?}",
+    //     (min_x, min_y, min_z),
+    //     (max_x, max_y, max_z)
+    // );
+
     Ok(())
 }
 
 fn exposed_faces_strict(points: &[Vec3]) -> isize {
-    let mut cubes: HashMap<_, _> = cube_faces(points);
-
-    let mut exposed = 0;
+    const CUBE_WIDTH: usize = 21;
+    let mut volume = vec![vec![vec![Cell::Air; CUBE_WIDTH]; CUBE_WIDTH]; CUBE_WIDTH];
 
     for point in points {
-        let faces = cubes.get(point).unwrap();
-        exposed += 6;
+        volume[point.x as usize][point.y as usize][point.z as usize] = Cell::Lava;
+    }
 
-        for face in faces.into_iter() {
-            let adjacet = *point + face.to_vec3();
-
-            if let Some(faces) = cubes.get_mut(&adjacet) {
-                exposed -= 2;
-                *faces -= face.opposing_face();
-                *cubes.get_mut(point).unwrap() -= face;
-                continue;
-            }
-
-            'outer: {
-                for face in FlagSet::<Face>::full() - face.opposing_face() {
-                    let lava = adjacet + face.to_vec3();
-                    if cubes.get(&lava).is_none() {
-                        break 'outer;
-                    }
-                }
-
-                exposed -= 6;
-                for face in FlagSet::<Face>::full() {
-                    let lava = adjacet + face.to_vec3();
-                    *cubes.get_mut(&lava).unwrap() -= face.opposing_face();
-                }
+    for y in volume[0].iter_mut() {
+        for z in y.iter_mut() {
+            if *z == Cell::Air {
+                *z = Cell::Steam;
             }
         }
     }
 
-    exposed
+    for y in volume[CUBE_WIDTH - 1].iter_mut() {
+        for z in y.iter_mut() {
+            if *z == Cell::Air {
+                *z = Cell::Steam;
+            }
+        }
+    }
+
+    for x in volume.iter_mut() {
+        for z in x[0].iter_mut() {
+            if *z == Cell::Air {
+                *z = Cell::Steam;
+            }
+        }
+
+        for z in x[CUBE_WIDTH - 1].iter_mut() {
+            if *z == Cell::Air {
+                *z = Cell::Steam;
+            }
+        }
+    }
+
+    for x in volume.iter_mut() {
+        for y in x.iter_mut() {
+            if y[0] == Cell::Air {
+                y[0] = Cell::Steam;
+            }
+
+            if y[CUBE_WIDTH - 1] == Cell::Air {
+                y[CUBE_WIDTH - 1] = Cell::Steam;
+            }
+        }
+    }
+
+    todo!()
 }
 
 fn exposed_faces(points: &[Vec3]) -> isize {
@@ -117,6 +151,13 @@ fn cube_faces(points: &[Vec3]) -> HashMap<Vec3, FlagSet<Face>> {
         .copied()
         .map(|p| (p, FlagSet::<Face>::full()))
         .collect()
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Cell {
+    Air,
+    Lava,
+    Steam,
 }
 
 flags! {
